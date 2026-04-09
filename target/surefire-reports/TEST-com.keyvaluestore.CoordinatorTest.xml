@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report-3.0.xsd" version="3.0" name="com.keyvaluestore.CoordinatorTest" time="0.287" tests="13" errors="0" skipped="0" failures="0">
+  <properties>
+    <property name="java.specification.version" value="17"/>
+    <property name="sun.cpu.isalist" value="amd64"/>
+    <property name="sun.jnu.encoding" value="Cp1252"/>
+    <property name="java.class.path" value="C:\0-cosas-mias\0-estudios\Diseños\key-value-store\target\test-classes;C:\0-cosas-mias\0-estudios\Diseños\key-value-store\target\classes;C:\Users\c-est\.m2\repository\org\slf4j\slf4j-api\2.0.12\slf4j-api-2.0.12.jar;C:\Users\c-est\.m2\repository\ch\qos\logback\logback-classic\1.5.3\logback-classic-1.5.3.jar;C:\Users\c-est\.m2\repository\ch\qos\logback\logback-core\1.5.3\logback-core-1.5.3.jar;C:\Users\c-est\.m2\repository\org\junit\jupiter\junit-jupiter\5.10.2\junit-jupiter-5.10.2.jar;C:\Users\c-est\.m2\repository\org\junit\jupiter\junit-jupiter-api\5.10.2\junit-jupiter-api-5.10.2.jar;C:\Users\c-est\.m2\repository\org\opentest4j\opentest4j\1.3.0\opentest4j-1.3.0.jar;C:\Users\c-est\.m2\repository\org\junit\platform\junit-platform-commons\1.10.2\junit-platform-commons-1.10.2.jar;C:\Users\c-est\.m2\repository\org\apiguardian\apiguardian-api\1.1.2\apiguardian-api-1.1.2.jar;C:\Users\c-est\.m2\repository\org\junit\jupiter\junit-jupiter-params\5.10.2\junit-jupiter-params-5.10.2.jar;C:\Users\c-est\.m2\repository\org\junit\jupiter\junit-jupiter-engine\5.10.2\junit-jupiter-engine-5.10.2.jar;C:\Users\c-est\.m2\repository\org\junit\platform\junit-platform-engine\1.10.2\junit-platform-engine-1.10.2.jar;"/>
+    <property name="java.vm.vendor" value="Oracle Corporation"/>
+    <property name="sun.arch.data.model" value="64"/>
+    <property name="user.variant" value=""/>
+    <property name="java.vendor.url" value="https://java.oracle.com/"/>
+    <property name="user.timezone" value="America/Buenos_Aires"/>
+    <property name="os.name" value="Windows 11"/>
+    <property name="java.vm.specification.version" value="17"/>
+    <property name="sun.java.launcher" value="SUN_STANDARD"/>
+    <property name="user.country" value="AR"/>
+    <property name="sun.boot.library.path" value="C:\Program Files\Java\jdk-17\bin"/>
+    <property name="sun.java.command" value="C:\Users\c-est\AppData\Local\Temp\surefire7679367422047878649\surefirebooter-20260409113654625_3.jar C:\Users\c-est\AppData\Local\Temp\surefire7679367422047878649 2026-04-09T11-36-54_437-jvmRun1 surefire-20260409113654625_1tmp surefire_0-20260409113654625_2tmp"/>
+    <property name="jdk.debug" value="release"/>
+    <property name="surefire.test.class.path" value="C:\0-cosas-mias\0-estudios\Diseños\key-value-store\target\test-classes;C:\0-cosas-mias\0-estudios\Diseños\key-value-store\target\classes;C:\Users\c-est\.m2\repository\org\slf4j\slf4j-api\2.0.12\slf4j-api-2.0.12.jar;C:\Users\c-est\.m2\repository\ch\qos\logback\logback-classic\1.5.3\logback-classic-1.5.3.jar;C:\Users\c-est\.m2\repository\ch\qos\logback\logback-core\1.5.3\logback-core-1.5.3.jar;C:\Users\c-est\.m2\repository\org\junit\jupiter\junit-jupiter\5.10.2\junit-jupiter-5.10.2.jar;C:\Users\c-est\.m2\repository\org\junit\jupiter\junit-jupiter-api\5.10.2\junit-jupiter-api-5.10.2.jar;C:\Users\c-est\.m2\repository\org\opentest4j\opentest4j\1.3.0\opentest4j-1.3.0.jar;C:\Users\c-est\.m2\repository\org\junit\platform\junit-platform-commons\1.10.2\junit-platform-commons-1.10.2.jar;C:\Users\c-est\.m2\repository\org\apiguardian\apiguardian-api\1.1.2\apiguardian-api-1.1.2.jar;C:\Users\c-est\.m2\repository\org\junit\jupiter\junit-jupiter-params\5.10.2\junit-jupiter-params-5.10.2.jar;C:\Users\c-est\.m2\repository\org\junit\jupiter\junit-jupiter-engine\5.10.2\junit-jupiter-engine-5.10.2.jar;C:\Users\c-est\.m2\repository\org\junit\platform\junit-platform-engine\1.10.2\junit-platform-engine-1.10.2.jar;"/>
+    <property name="sun.cpu.endian" value="little"/>
+    <property name="user.home" value="C:\Users\c-est"/>
+    <property name="user.language" value="es"/>
+    <property name="java.specification.vendor" value="Oracle Corporation"/>
+    <property name="java.version.date" value="2024-10-15"/>
+    <property name="java.home" value="C:\Program Files\Java\jdk-17"/>
+    <property name="file.separator" value="\"/>
+    <property name="basedir" value="C:\0-cosas-mias\0-estudios\Diseños\key-value-store"/>
+    <property name="java.vm.compressedOopsMode" value="Zero based"/>
+    <property name="line.separator" value="&#10;"/>
+    <property name="java.vm.specification.vendor" value="Oracle Corporation"/>
+    <property name="java.specification.name" value="Java Platform API Specification"/>
+    <property name="surefire.real.class.path" value="C:\Users\c-est\AppData\Local\Temp\surefire7679367422047878649\surefirebooter-20260409113654625_3.jar"/>
+    <property name="user.script" value=""/>
+    <property name="sun.management.compiler" value="HotSpot 64-Bit Tiered Compilers"/>
+    <property name="java.runtime.version" value="17.0.13+10-LTS-268"/>
+    <property name="user.name" value="c-est"/>
+    <property name="path.separator" value=";"/>
+    <property name="os.version" value="10.0"/>
+    <property name="java.runtime.name" value="Java(TM) SE Runtime Environment"/>
+    <property name="file.encoding" value="Cp1252"/>
+    <property name="java.vm.name" value="Java HotSpot(TM) 64-Bit Server VM"/>
+    <property name="localRepository" value="C:\Users\c-est\.m2\repository"/>
+    <property name="java.vendor.url.bug" value="https://bugreport.java.com/bugreport/"/>
+    <property name="java.io.tmpdir" value="C:\Users\c-est\AppData\Local\Temp\"/>
+    <property name="java.version" value="17.0.13"/>
+    <property name="user.dir" value="C:\0-cosas-mias\0-estudios\Diseños\key-value-store"/>
+    <property name="os.arch" value="amd64"/>
+    <property name="java.vm.specification.name" value="Java Virtual Machine Specification"/>
+    <property name="sun.os.patch.level" value=""/>
+    <property name="native.encoding" value="Cp1252"/>
+    <property name="java.library.path" value="C:\Program Files\Java\jdk-17\bin;C:\WINDOWS\Sun\Java\bin;C:\WINDOWS\system32;C:\WINDOWS;C:\Users\c-est\bin;C:\Program Files\Git\mingw64\bin;C:\Program Files\Git\usr\local\bin;C:\Program Files\Git\usr\bin;C:\Program Files\Git\usr\bin;C:\Program Files\Git\mingw64\bin;C:\Program Files\Git\usr\bin;C:\Users\c-est\bin;C:\Program Files\Common Files\Oracle\Java\javapath;C:\Program Files\Java\jdk-17\bin;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0;C:\WINDOWS\System32\OpenSSH;C:\Program Files\maven\apache-maven-3.6.3\bin;C:\Program Files\Amazon\SessionManagerPlugin\bin;C:\Program Files\Git\cmd;C:\Program Files\Go\bin;C:\Program Files\Docker\Docker\resources\bin;C:\0-cosas mias\3-grpc\protoc\bin;C:\Program Files\GitHub CLI;C:\Program Files\php-8.4.2;C:\ProgramData\ComposerSetup\bin;C:\Users\c-est\AppData\Local\nvm;C:\nvm4w\nodejs;C:\Program Files\PowerShell\7-preview\preview;C:\Program Files\cursor\resources\app\bin;C:\Program Files\PowerShell\7;C:\Users\c-est\scoop\shims;C:\Users\c-est\miniconda3;C:\Users\c-est\miniconda3\Library\mingw-w64\bin;C:\Users\c-est\miniconda3\Library\usr\bin;C:\Users\c-est\miniconda3\Library\bin;C:\Users\c-est\miniconda3\Scripts;C:\Users\c-est\AppData\Local\Programs\Python\Python311\Scripts;C:\Users\c-est\AppData\Local\Programs\Python\Python311;C:\Users\c-est\AppData\Local\Microsoft\WindowsApps;C:\Users\c-est\AppData\Local\Programs\Microsoft VS Code\bin;C:\Users\c-est\AppData\Roaming\npm;C:\Program Files\JetBrains\IntelliJ IDEA Community Edition 2022.3.2\bin;C:\Users\c-est\.fly\bin;C:\Users\c-est\go\bin;C:\Gradle\gradle-8.10.2-all\gradle-8.10.2\bin;C:\Users\c-est\AppData\Roaming\Composer\vendor\bin;C:\Users\c-est\AppData\Local\nvm;C:\nvm4w\nodejs;C:\Users\c-est\AppData\Local\Microsoft\WindowsApps;C:\Users\c-est\AppData\Local\Programs\Antigravity\bin;C:\Users\c-est\AppData\Local\Programs\cursor\resources\app\bin;C:\Users\c-est\.lmstudio\bin;C:\Program Files\Git\usr\bin\vendor_perl;C:\Program Files\Git\usr\bin\core_perl;."/>
+    <property name="java.vm.info" value="mixed mode, sharing"/>
+    <property name="java.vendor" value="Oracle Corporation"/>
+    <property name="java.vm.version" value="17.0.13+10-LTS-268"/>
+    <property name="java.specification.maintenance.version" value="1"/>
+    <property name="sun.io.unicode.encoding" value="UnicodeLittle"/>
+    <property name="java.class.version" value="61.0"/>
+  </properties>
+  <testcase name="escrituraYLecturaBasicaConQuorumExitoso" classname="com.keyvaluestore.CoordinatorTest" time="0.203">
+    <system-out><![CDATA[11:36:55.341 [main] INFO  c.k.coordinator.Coordinator - [PUT] Iniciando escritura de clave 'usuario:1001' con valor 'Alice' (Quórum W=2/3)
+11:36:55.345 [main] INFO  c.k.coordinator.Coordinator - [PUT] Éxito. Clave 'usuario:1001' guardada con Quórum alcanzado (3 respuestas recibidas).
+11:36:55.346 [main] INFO  c.k.coordinator.Coordinator - [GET] Iniciando lectura de clave 'usuario:1001' (Quórum R=2/3)
+11:36:55.346 [main] INFO  c.k.coordinator.Coordinator - [GET] Quórum alcanzado para clave 'usuario:1001'. Valores recolectados: 3
+]]></system-out>
+  </testcase>
+  <testcase name="getConClaveNulaLanzaExcepcion" classname="com.keyvaluestore.CoordinatorTest" time="0.002"/>
+  <testcase name="escriturasSecuencialesAvanzanElReloj" classname="com.keyvaluestore.CoordinatorTest" time="0.007">
+    <system-out><![CDATA[11:36:55.367 [main] INFO  c.k.coordinator.Coordinator - [PUT] Iniciando escritura de clave 'config:timeout' con valor '30' (Quórum W=2/3)
+11:36:55.368 [main] INFO  c.k.coordinator.Coordinator - [PUT] Éxito. Clave 'config:timeout' guardada con Quórum alcanzado (3 respuestas recibidas).
+11:36:55.369 [main] INFO  c.k.coordinator.Coordinator - [PUT] Iniciando escritura de clave 'config:timeout' con valor '60' (Quórum W=2/3)
+11:36:55.369 [main] INFO  c.k.coordinator.Coordinator - [PUT] Éxito. Clave 'config:timeout' guardada con Quórum alcanzado (3 respuestas recibidas).
+11:36:55.369 [main] INFO  c.k.coordinator.Coordinator - [GET] Iniciando lectura de clave 'config:timeout' (Quórum R=2/3)
+11:36:55.369 [main] INFO  c.k.coordinator.Coordinator - [GET] Quórum alcanzado para clave 'config:timeout'. Valores recolectados: 3
+]]></system-out>
+  </testcase>
+  <testcase name="multiplesClavesIndependientes" classname="com.keyvaluestore.CoordinatorTest" time="0.003">
+    <system-out><![CDATA[11:36:55.374 [main] INFO  c.k.coordinator.Coordinator - [PUT] Iniciando escritura de clave 'producto:A' con valor 'Laptop' (Quórum W=2/3)
+11:36:55.375 [main] INFO  c.k.coordinator.Coordinator - [PUT] Éxito. Clave 'producto:A' guardada con Quórum alcanzado (3 respuestas recibidas).
+11:36:55.375 [main] INFO  c.k.coordinator.Coordinator - [PUT] Iniciando escritura de clave 'producto:B' con valor 'Mouse' (Quórum W=2/3)
+11:36:55.375 [main] INFO  c.k.coordinator.Coordinator - [PUT] Éxito. Clave 'producto:B' guardada con Quórum alcanzado (3 respuestas recibidas).
+11:36:55.375 [main] INFO  c.k.coordinator.Coordinator - [GET] Iniciando lectura de clave 'producto:A' (Quórum R=2/3)
+11:36:55.375 [main] INFO  c.k.coordinator.Coordinator - [GET] Quórum alcanzado para clave 'producto:A'. Valores recolectados: 3
+11:36:55.375 [main] INFO  c.k.coordinator.Coordinator - [GET] Iniciando lectura de clave 'producto:B' (Quórum R=2/3)
+11:36:55.375 [main] INFO  c.k.coordinator.Coordinator - [GET] Quórum alcanzado para clave 'producto:B'. Valores recolectados: 3
+]]></system-out>
+  </testcase>
+  <testcase name="lecturaExitosaConUnNodoCaido" classname="com.keyvaluestore.CoordinatorTest" time="0.005">
+    <system-out><![CDATA[11:36:55.379 [main] INFO  c.k.coordinator.Coordinator - [PUT] Iniciando escritura de clave 'sesion:abc' con valor 'token-123' (Quórum W=2/3)
+11:36:55.379 [main] INFO  c.k.coordinator.Coordinator - [PUT] Éxito. Clave 'sesion:abc' guardada con Quórum alcanzado (3 respuestas recibidas).
+11:36:55.379 [main] INFO  c.k.coordinator.Coordinator - [GET] Iniciando lectura de clave 'sesion:abc' (Quórum R=2/3)
+11:36:55.380 [main] INFO  c.k.coordinator.Coordinator - [GET] Quórum alcanzado para clave 'sesion:abc'. Valores recolectados: 2
+]]></system-out>
+  </testcase>
+  <testcase name="getDeClaveInexistenteDevuelveEmpty" classname="com.keyvaluestore.CoordinatorTest" time="0.004">
+    <system-out><![CDATA[11:36:55.385 [main] INFO  c.k.coordinator.Coordinator - [GET] Iniciando lectura de clave 'clave:que:no:existe' (Quórum R=2/3)
+11:36:55.386 [main] INFO  c.k.coordinator.Coordinator - [GET] Quórum alcanzado, pero la clave 'clave:que:no:existe' no se encontró en ningún nodo.
+]]></system-out>
+  </testcase>
+  <testcase name="escrituraExitosaConUnNodoCaido" classname="com.keyvaluestore.CoordinatorTest" time="0.004">
+    <system-out><![CDATA[11:36:55.391 [main] INFO  c.k.coordinator.Coordinator - [PUT] Iniciando escritura de clave 'sesion:xyz' con valor 'activa' (Quórum W=2/3)
+11:36:55.391 [main] INFO  c.k.coordinator.Coordinator - [PUT] Éxito. Clave 'sesion:xyz' guardada con Quórum alcanzado (2 respuestas recibidas).
+]]></system-out>
+  </testcase>
+  <testcase name="constructorLanzaExcepcionSiWEsImposible" classname="com.keyvaluestore.CoordinatorTest" time="0.002"/>
+  <testcase name="lecturaFallaSiNoHayQuorum" classname="com.keyvaluestore.CoordinatorTest" time="0.004">
+    <system-out><![CDATA[11:36:55.397 [main] INFO  c.k.coordinator.Coordinator - [PUT] Iniciando escritura de clave 'dato:importante' con valor 'valor' (Quórum W=2/3)
+11:36:55.398 [main] INFO  c.k.coordinator.Coordinator - [PUT] Éxito. Clave 'dato:importante' guardada con Quórum alcanzado (3 respuestas recibidas).
+11:36:55.399 [main] INFO  c.k.coordinator.Coordinator - [GET] Iniciando lectura de clave 'dato:importante' (Quórum R=2/3)
+11:36:55.399 [main] ERROR c.k.coordinator.Coordinator - [GET] Quórum fallido para clave 'dato:importante'. Se requerían 2 respuestas, pero se obtuvieron 1
+]]></system-out>
+  </testcase>
+  <testcase name="putConClaveNulaLanzaExcepcion" classname="com.keyvaluestore.CoordinatorTest" time="0.003"/>
+  <testcase name="lecturaCorrectaCuandoNodoCaidoNoTeniaElDato" classname="com.keyvaluestore.CoordinatorTest" time="0.002">
+    <system-out><![CDATA[11:36:55.405 [main] INFO  c.k.coordinator.Coordinator - [PUT] Iniciando escritura de clave 'clave:efimera' con valor 'valorX' (Quórum W=2/3)
+11:36:55.406 [main] INFO  c.k.coordinator.Coordinator - [PUT] Éxito. Clave 'clave:efimera' guardada con Quórum alcanzado (2 respuestas recibidas).
+11:36:55.406 [main] INFO  c.k.coordinator.Coordinator - [GET] Iniciando lectura de clave 'clave:efimera' (Quórum R=2/3)
+11:36:55.407 [main] INFO  c.k.coordinator.Coordinator - [GET] Quórum alcanzado para clave 'clave:efimera'. Valores recolectados: 1
+]]></system-out>
+  </testcase>
+  <testcase name="putConValorNuloLanzaExcepcion" classname="com.keyvaluestore.CoordinatorTest" time="0.001"/>
+  <testcase name="escrituraFallaSiNoHayQuorum" classname="com.keyvaluestore.CoordinatorTest" time="0.003">
+    <system-out><![CDATA[11:36:55.410 [main] INFO  c.k.coordinator.Coordinator - [PUT] Iniciando escritura de clave 'clave:critica' con valor 'valorCritico' (Quórum W=2/3)
+11:36:55.411 [main] ERROR c.k.coordinator.Coordinator - [PUT] Quórum fallido para clave 'clave:critica'. Se requerían 2 respuestas, pero se obtuvieron 0
+]]></system-out>
+  </testcase>
+</testsuite>

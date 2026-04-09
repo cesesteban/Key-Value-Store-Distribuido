@@ -1,0 +1,7 @@
+com\keyvaluestore\storage\StorageNode.class
+com\keyvaluestore\exception\QuorumNotReachedException.class
+com\keyvaluestore\clock\VectorClock$ComparisonResult.class
+com\keyvaluestore\storage\InMemoryStorageNode.class
+com\keyvaluestore\model\VersionedValue.class
+com\keyvaluestore\clock\VectorClock.class
+com\keyvaluestore\coordinator\Coordinator.class
