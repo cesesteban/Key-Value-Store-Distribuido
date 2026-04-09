@@ -94,10 +94,9 @@ leer datos desactualizados, logrando un balance entre disponibilidad y consisten
 
 ### ¿Qué pasa cuando dos personas editan lo mismo a la vez?
 
-Aquí entran los **Relojes Vectoriales** (sección 3). El sistema no finge que
-el problema no existe ni elige una versión al azar. En cambio, *detecta* el
-conflicto y deja que la aplicación decida cómo resolverlo — igual que Amazon
-hace con el carrito: si hay conflicto, une ambos carritos en vez de tirar uno.
+Aquí entran los **Relojes Vectoriales** (sección 3). El sistema no elige una versión al azar; en cambio, *detecta* el conflicto y **preserva todas las versiones concurrentes** (denominadas *siblings*). Esto permite que la aplicación decida cómo resolverlo — igual que Amazon hace con el carrito: si hay conflicto, se retornan ambos carritos para que el cliente realice el merge.
+
+Además, el sistema implementa **Read Repair** para garantizar la convergencia de las réplicas de forma pasiva cada vez que se realiza una lectura.
 
 ---
 
@@ -207,7 +206,19 @@ assertEquals(CONCURRENT, relojB.compareTo(relojA)); // ✅ (es simétrico)
 
 ---
 
-## 4. Resumen visual de la arquitectura
+## 4. Convergencia de Réplicas (Read Repair)
+
+En un sistema Dynamo, la consistencia eventual se logra mediante mecanismos que "reparan" los datos obsoletos. Este simulador implementa **Read Repair**:
+
+1.  Al realizar un `get()`, el Coordinador consulta `R` nodos.
+2.  Si detecta que algún nodo tiene una versión causalmente anterior (`BEFORE`) a la más reciente encontrada, lanza una petición de escritura asíncrona hacia ese nodo.
+3.  Esto asegura que, tras una lectura exitosa, el sistema tienda a la convergencia sin esperar a una escritura del cliente.
+
+Si existen conflictos (siblings), el Read Repair intenta una "fusión" básica para propiciar la convergencia hacia un estado único, aunque la resolución definitiva sigue siendo responsabilidad del cliente.
+
+---
+
+## 5. Resumen visual de la arquitectura
 
 ```
            El cliente llama a:

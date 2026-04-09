@@ -12,6 +12,8 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -64,16 +66,17 @@ class CoordinatorTest {
         // Escritura: los 3 nodos están disponibles → se alcanzan las 2 confirmaciones (W).
         coordinator.put("usuario:1001", "Alice");
 
-        Optional<VersionedValue> resultado = coordinator.get("usuario:1001");
+        List<VersionedValue> resultado = coordinator.get("usuario:1001");
 
-        assertTrue(resultado.isPresent(), "La clave debe existir tras una escritura exitosa.");
-        assertEquals("Alice", resultado.get().getValue(),
+        assertFalse(resultado.isEmpty(), "La lista no debe estar vacía tras una escritura exitosa.");
+        assertEquals(1, resultado.size(), "Debe haber exactamente una versión ganadora.");
+        assertEquals("Alice", resultado.get(0).getValue(),
             "El valor recuperado debe coincidir con el escrito.");
 
         // Verificar que el VectorClock fue asignado correctamente al dato
-        assertNotNull(resultado.get().getClock(),
+        assertNotNull(resultado.get(0).getClock(),
             "El dato debe tener un reloj vectorial asignado.");
-        assertFalse(resultado.get().getClock().getEntries().isEmpty(),
+        assertFalse(resultado.get(0).getClock().getEntries().isEmpty(),
             "El reloj vectorial no debe estar vacío tras una escritura.");
     }
 
@@ -83,8 +86,8 @@ class CoordinatorTest {
         coordinator.put("producto:A", "Laptop");
         coordinator.put("producto:B", "Mouse");
 
-        assertEquals("Laptop", coordinator.get("producto:A").orElseThrow().getValue());
-        assertEquals("Mouse",  coordinator.get("producto:B").orElseThrow().getValue());
+        assertEquals("Laptop", coordinator.get("producto:A").get(0).getValue());
+        assertEquals("Mouse",  coordinator.get("producto:B").get(0).getValue());
     }
 
     @Test
@@ -93,7 +96,9 @@ class CoordinatorTest {
         coordinator.put("config:timeout", "30");
         coordinator.put("config:timeout", "60");
 
-        VersionedValue resultado = coordinator.get("config:timeout").orElseThrow();
+        List<VersionedValue> resultados = coordinator.get("config:timeout");
+        assertEquals(1, resultados.size());
+        VersionedValue resultado = resultados.get(0);
         assertEquals("60", resultado.getValue(),
             "La segunda escritura debe sobreescribir a la primera.");
 
@@ -106,11 +111,11 @@ class CoordinatorTest {
     }
 
     @Test
-    @DisplayName("[TEST 1 EXTENDIDO] get() devuelve Optional.empty() para clave inexistente")
+    @DisplayName("[TEST 1 EXTENDIDO] get() devuelve lista vacía para clave inexistente")
     void getDeClaveInexistenteDevuelveEmpty() {
-        Optional<VersionedValue> resultado = coordinator.get("clave:que:no:existe");
+        List<VersionedValue> resultado = coordinator.get("clave:que:no:existe");
         assertTrue(resultado.isEmpty(),
-            "Una clave que nunca fue escrita debe devolver Optional.empty().");
+            "Una clave que nunca fue escrita debe devolver una lista vacía.");
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -139,10 +144,10 @@ class CoordinatorTest {
         // Ahora caemos el nodo 3.
         nodo3.setAvailable(false);
 
-        Optional<VersionedValue> resultado = coordinator.get("sesion:abc");
+        List<VersionedValue> resultado = coordinator.get("sesion:abc");
 
-        assertTrue(resultado.isPresent(), "La lectura debe encontrar el dato en los 2 nodos disponibles.");
-        assertEquals("token-123", resultado.get().getValue());
+        assertFalse(resultado.isEmpty(), "La lectura debe encontrar el dato en los 2 nodos disponibles.");
+        assertEquals("token-123", resultado.get(0).getValue());
     }
 
     @Test
@@ -158,10 +163,10 @@ class CoordinatorTest {
 
         // Nodo 2 no tiene el dato (nunca lo recibió), Nodo 3 sí lo tiene.
         // Con Nodo 2 (vacío) + Nodo 3 (con dato) → R=2 se cumple.
-        Optional<VersionedValue> resultado = coordinator.get("clave:efimera");
+        List<VersionedValue> resultado = coordinator.get("clave:efimera");
 
-        assertTrue(resultado.isPresent(), "Al menos un nodo respondiente debe tener el dato.");
-        assertEquals("valorX", resultado.get().getValue());
+        assertFalse(resultado.isEmpty(), "Al menos un nodo respondiente debe tener el dato.");
+        assertEquals("valorX", resultado.get(0).getValue());
     }
 
     @Test
@@ -229,5 +234,58 @@ class CoordinatorTest {
         List<StorageNode> dosNodos = List.of(nodo1, nodo2);
         assertThrows(IllegalArgumentException.class,
             () -> new Coordinator(dosNodos, 2, 3, 1, "coord")); // W=3 > nodos=2
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // NUEVOS TESTS: Preservación de Siblings y Read Repair
+    // ─────────────────────────────────────────────────────────────────────────
+
+    @Test
+    @DisplayName("[CONFLICTOS] Preservación de Siblings ante escrituras concurrentes")
+    void preservacionDeSiblings() {
+        // Simulamos una situación donde dos nodos reciben escrituras divergentes.
+        // Esto es difícil de hacer con coordinator.put() porque él centraliza el reloj.
+        // Lo forzamos inyectando directamente en los nodos.
+
+        VersionedValue v1 = new VersionedValue("Valor A", 
+            new com.keyvaluestore.clock.VectorClock().withVersion("nodo-1", 1));
+        VersionedValue v2 = new VersionedValue("Valor B", 
+            new com.keyvaluestore.clock.VectorClock().withVersion("nodo-2", 1));
+
+        nodo1.put("conflicto", v1);
+        nodo2.put("conflicto", v2);
+        // nodo3 queda vacío para esta clave.
+
+        // Al leer con R=2, si consulta nodo1 y nodo2, encontrará versiones concurrentes.
+        List<VersionedValue> resultados = coordinator.get("conflicto");
+
+        assertEquals(2, resultados.size(), "Deben preservarse ambas versiones concurrentes (siblings).");
+        Set<String> valores = resultados.stream().map(VersionedValue::getValue).collect(java.util.stream.Collectors.toSet());
+        assertTrue(valores.contains("Valor A"));
+        assertTrue(valores.contains("Valor B"));
+    }
+
+    @Test
+    @DisplayName("[CONVERGENCIA] Read Repair actualiza nodos obsoletos")
+    void readRepairActualizaNodosObsoletos() throws InterruptedException {
+        // 1. Escribimos un dato inicial en todos.
+        coordinator.put("convergencia", "v1");
+
+        // 2. Caemos el nodo 3 y actualizamos a v2.
+        nodo3.setAvailable(false);
+        coordinator.put("convergencia", "v2");
+        nodo3.setAvailable(true); // Nodo 3 vuelve, pero tiene "v1" (obsoleto).
+
+        // 3. Realizamos un GET. El quórum incluirá al nodo 3.
+        // El coordinador detectará que nodo 3 es obsoleto y lanzará Read Repair.
+        List<VersionedValue> resultados = coordinator.get("convergencia");
+        assertEquals("v2", resultados.get(0).getValue());
+
+        // 4. Pequeña espera para que el hilo de background del Read Repair complete.
+        Thread.sleep(100);
+
+        // 5. Verificar que nodo 3 ahora tiene "v2".
+        VersionedValue valorNodo3 = nodo3.get("convergencia").orElseThrow();
+        assertEquals("v2", valorNodo3.getValue(), "El nodo 3 debería haber sido reparado con v2.");
     }
 }

@@ -6,13 +6,16 @@ import com.keyvaluestore.model.VersionedValue;
 import com.keyvaluestore.storage.StorageNode;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -158,58 +161,76 @@ public class Coordinator {
      *      (patrón "last write wins" o lógica de negocio). El sistema garantiza
      *      detectar el conflicto gracias a VectorClock.isConcurrentWith().
      *
-     * @return Optional con el VersionedValue más reciente, o empty si la clave no existe.
+     * @return Lista de VersionedValue. Estará vacía si la clave no existe. 
+     *         Si contiene más de un elemento, es porque se detectaron conflictos concurrentes (siblings).
      * @throws QuorumNotReachedException si no se obtienen R respuestas exitosas.
      */
-    public Optional<VersionedValue> get(String key) {
+    public List<VersionedValue> get(String key) {
         validarClave(key);
         log.info("[GET] Iniciando lectura de clave '{}' (Quórum R={}/{})", key, r, n);
 
         List<Future<Optional<VersionedValue>>> futures = new ArrayList<>();
+        // En un sistema real usaríamos solo N nodos preferentes del anillo de hash.
         for (StorageNode nodo : nodos) {
-            futures.add(executor.submit(() -> {
-                // Si el nodo falla (ej. tira IllegalStateException por estar caído),
-                // no hacemos try-catch, dejamos que la excepción se propague al Future.
-                return nodo.get(key);
-            }));
+            futures.add(executor.submit(() -> nodo.get(key)));
         }
 
-        // Recolectar respuestas no vacías (nodos que tienen la clave).
+        // Recolectar todas las respuestas que lleguen a tiempo.
         List<VersionedValue> respuestas = new ArrayList<>();
-        for (Future<Optional<VersionedValue>> future : futures) {
+        List<StorageNode> nodosQueRespondieronConValor = new ArrayList<>();
+        List<StorageNode> nodosObsoletos = new ArrayList<>();
+
+        for (int i = 0; i < nodos.size(); i++) {
             try {
-                Optional<VersionedValue> respuesta = future.get(TIMEOUT_MS, TimeUnit.MILLISECONDS);
-                respuesta.ifPresent(respuestas::add);
+                Optional<VersionedValue> respuesta = futures.get(i).get(TIMEOUT_MS, TimeUnit.MILLISECONDS);
+                if (respuesta.isPresent()) {
+                    respuestas.add(respuesta.get());
+                    nodosQueRespondieronConValor.add(nodos.get(i));
+                }
             } catch (Exception e) {
-                // Timeout o excepción de nodo caído: ignoramos esta respuesta.
+                // Nodo caído o timeout: ignorar.
             }
         }
 
-        /*
-         * Para calcular el quórum de lectura, necesitamos al menos R nodos que
-         * respondieron (con o sin valor). Pero si un nodo está caído, su Future
-         * llegará vacío. Volvemos a contar los futures con resultado (incluyendo empty).
-         *
-         * Decisión de diseño: contamos como respuesta exitosa cualquier nodo que
-         * respondió sin excepción, aunque haya devuelto Optional.empty() (clave inexistente).
-         * Esto es coherente con Dynamo: un nodo disponible que no tiene la clave es una
-         * respuesta válida de "no encontrado".
-         */
-        int nodosQueRespondieron = contarRespuestasExitosas(futures);
-        if (nodosQueRespondieron < r) {
-            log.error("[GET] Quórum fallido para clave '{}'. Se requerían {} respuestas, pero se obtuvieron {}", key, r, nodosQueRespondieron);
-            throw new QuorumNotReachedException(r, nodosQueRespondieron);
+        int nodosTotalesQueRespondieron = contarRespuestasExitosas(futures);
+        if (nodosTotalesQueRespondieron < r) {
+            log.error("[GET] Quórum fallido para clave '{}'. Se requerían {} respuestas, pero se obtuvieron {}", key, r, nodosTotalesQueRespondieron);
+            throw new QuorumNotReachedException(r, nodosTotalesQueRespondieron);
         }
 
         if (respuestas.isEmpty()) {
-            log.info("[GET] Quórum alcanzado, pero la clave '{}' no se encontró en ningún nodo.", key);
-            return Optional.empty();
+            log.info("[GET] Quórum alcanzado, clave '{}' no encontrada.", key);
+            return Collections.emptyList();
         }
 
-        log.info("[GET] Quórum alcanzado para clave '{}'. Valores recolectados: {}", key, respuestas.size());
+        // 1. Detectar las versiones más recientes (resolver conflictos/siblings).
+        List<VersionedValue> ganadores = resolverConflictos(respuestas);
+        
+        // 2. Identificar nodos desactualizados para Read Repair.
+        // Un nodo es obsoleto si su valor está causalmente ANTES de cualquiera de los ganadores.
+        for (int i = 0; i < nodos.size(); i++) {
+            final int index = i;
+            try {
+                Optional<VersionedValue> value = futures.get(i).get(0, TimeUnit.MILLISECONDS);
+                if (value.isPresent()) {
+                    boolean esObsoleto = ganadores.stream().anyMatch(g -> value.get().getClock().happensBefore(g.getClock()));
+                    if (esObsoleto) {
+                        nodosObsoletos.add(nodos.get(index));
+                    }
+                } else {
+                    // Si el nodo respondió pero no tiene el valor, también es candidato a repair si otros sí lo tienen.
+                    nodosObsoletos.add(nodos.get(index));
+                }
+            } catch (Exception ignored) {}
+        }
 
-        // Elegir el valor con el reloj causalmente más avanzado.
-        return Optional.of(elegirMasReciente(respuestas));
+        // 3. Lanzar Read Repair asíncrono.
+        if (!nodosObsoletos.isEmpty()) {
+            lanzarReadRepair(key, ganadores, nodosObsoletos);
+        }
+
+        log.info("[GET] Éxito. Versiones encontradas: {}. Nodos reparados en background: {}", ganadores.size(), nodosObsoletos.size());
+        return ganadores;
     }
 
     /**
@@ -264,31 +285,62 @@ public class Coordinator {
     }
 
     /**
-     * Selecciona el VersionedValue causalmente más avanzado de una lista de respuestas.
+     * Filtra la lista de respuestas conservando solo las versiones que no son
+     * dominadas causalmente por ninguna otra.
      *
-     * Algoritmo de selección:
-     *   - Se itera por la lista y se mantiene el "ganador actual".
-     *   - Si el candidato tiene un reloj AFTER al ganador actual, pasa a ser el nuevo ganador.
-     *   - Si el candidato es CONCURRENT (conflicto), se mantiene el ganador actual.
-     *     En un sistema real, aquí se invocaría la función de resolución de conflictos
-     *     o se retornarían ambos como "siblings" para que el cliente decida.
-     *   - Si es BEFORE o EQUAL, el ganador no cambia.
-     *
-     * Esta lógica aplica correctamente el principio de causalidad de los VectorClocks.
+     * Si el resultado tiene más de un elemento, significa que hay un conflicto
+     * concurrente (siblings) que no se puede resolver automáticamente.
      */
-    private VersionedValue elegirMasReciente(List<VersionedValue> respuestas) {
-        VersionedValue ganador = respuestas.get(0);
-        for (int i = 1; i < respuestas.size(); i++) {
-            VersionedValue candidato = respuestas.get(i);
-            VectorClock.ComparisonResult resultado =
-                candidato.getClock().compareTo(ganador.getClock());
-
-            if (resultado == VectorClock.ComparisonResult.AFTER) {
-                ganador = candidato;
+    private List<VersionedValue> resolverConflictos(List<VersionedValue> respuestas) {
+        List<VersionedValue> ganadores = new ArrayList<>();
+        for (VersionedValue candidato : respuestas) {
+            boolean dominado = false;
+            for (VersionedValue otro : respuestas) {
+                if (candidato != otro && candidato.getClock().happensBefore(otro.getClock())) {
+                    dominado = true;
+                    break;
+                }
             }
-            // CONCURRENT, BEFORE, EQUAL → el ganador actual se mantiene.
+            // Evitar duplicados exactos en el resultado
+            if (!dominado && ganadores.stream().noneMatch(g -> g.getClock().equals(candidato.getClock()))) {
+                ganadores.add(candidato);
+            }
         }
-        return ganador;
+        return ganadores;
+    }
+
+    /**
+     * Notifica a los nodos desactualizados con la versión más reciente encontrada.
+     * Si hay múltiples siblings, enviamos una versión que es la "unión" de todos ellos
+     * (merge de relojes) para propiciar la convergencia.
+     */
+    private void lanzarReadRepair(String key, List<VersionedValue> ganadores, List<StorageNode> obsoletos) {
+        if (ganadores.isEmpty() || obsoletos.isEmpty()) return;
+
+        // Si hay conflictos, creamos un valor que represente la unión para el repair.
+        // En un sistema real esto podría ser más complejo.
+        VersionedValue versionAReparar = ganadores.get(0);
+        if (ganadores.size() > 1) {
+            VectorClock relojMerged = ganadores.get(0).getClock();
+            String valorMerged = ganadores.get(0).getValue();
+            for (int i = 1; i < ganadores.size(); i++) {
+                relojMerged = relojMerged.merge(ganadores.get(i).getClock());
+                valorMerged += " + " + ganadores.get(i).getValue(); // Simulación de merge
+            }
+            versionAReparar = new VersionedValue(valorMerged + " (repaired)", relojMerged);
+        }
+
+        final VersionedValue finalVersion = versionAReparar;
+        for (StorageNode nodo : obsoletos) {
+            executor.submit(() -> {
+                try {
+                    log.debug("[READ REPAIR] Actualizando nodo {} para clave {}", nodo.getNodeId(), key);
+                    nodo.put(key, finalVersion);
+                } catch (Exception e) {
+                    log.warn("[READ REPAIR] Falló actualización del nodo {}", nodo.getNodeId());
+                }
+            });
+        }
     }
 
     private void validarParametros(List<StorageNode> nodos, int n, int w, int r, String coordinadorId) {
