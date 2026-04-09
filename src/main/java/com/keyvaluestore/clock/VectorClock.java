@@ -5,104 +5,102 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 
 /**
- * Implementación inmutable de un Reloj Vectorial (Vector Clock).
+ * Implementación inmutable de un Reloj Vectorial (Vector Clock) con soporte para poda.
  *
- * Un reloj vectorial es un mapa de { nodoId -> número de versión } que permite
+ * Un reloj vectorial es un mapa de { nodoId -> (versión, timestamp) } que permite
  * determinar el orden causal entre eventos en un sistema distribuido.
  *
- * Por qué inmutabilidad: cada operación (increment, merge) devuelve un objeto NUEVO,
- * lo que elimina toda clase de bug de estado compartido en escenarios concurrentes,
- * sin necesidad de sincronización explícita en esta clase.
+ * Mejoras:
+ *  - Soporte para metadatos (timestamps) por entrada.
+ *  - Lógica de poda (pruning) para evitar crecimiento ilimitado (Límite: 10 nodos).
  *
  * Referencia: Capítulo 6 de "System Design Interview" — Alex Xu.
  */
 public final class VectorClock {
 
-    /**
-     * Resultado posible al comparar dos relojes vectoriales.
-     *
-     *  BEFORE     → este reloj precede causalmente al otro (happened-before).
-     *  AFTER      → este reloj sucede causalmente al otro.
-     *  EQUAL      → son idénticos.
-     *  CONCURRENT → existe un conflicto (siblings): cada uno tiene al menos
-     *               un componente mayor que el otro, por lo que no se puede
-     *               establecer un orden causal. Requiere resolución manual.
-     */
     public enum ComparisonResult {
         BEFORE, AFTER, EQUAL, CONCURRENT
     }
 
-    /** Mapa interno de nodo → versión. Nunca se muta una vez construido. */
-    private final Map<String, Long> entries;
+    /**
+     * Representa una entrada en el reloj: contador de versión y timestamp de la última actualización.
+     */
+    public record ClockEntry(long version, long timestamp) {}
 
-    /** Constructor del reloj vacío (punto de partida). */
+    private final Map<String, ClockEntry> entries;
+    private static final int MAX_NODES = 10;
+
     public VectorClock() {
         this.entries = Collections.emptyMap();
     }
 
-    /** Constructor de copia interna usado por las operaciones funcionales. */
-    private VectorClock(Map<String, Long> entries) {
+    private VectorClock(Map<String, ClockEntry> entries) {
         this.entries = Collections.unmodifiableMap(new HashMap<>(entries));
     }
 
     /**
-     * Devuelve un nuevo reloj con el contador del nodo dado incrementado en 1.
-     * El nodo se agrega si no existía previamente (inicio en 0 → pasa a 1).
-     *
-     * Se llama cuando un nodo procesa un evento propio: escritura, coordinación, etc.
+     * Incrementa la versión del nodo y actualiza su timestamp.
+     * Aplica poda si se supera el límite de nodos.
      */
     public VectorClock increment(String nodeId) {
         if (nodeId == null || nodeId.isBlank()) {
             throw new IllegalArgumentException("El identificador de nodo no puede ser nulo ni vacío.");
         }
-        Map<String, Long> next = new HashMap<>(entries);
-        next.merge(nodeId, 1L, Long::sum);
-        return new VectorClock(next);
+        Map<String, ClockEntry> next = new HashMap<>(entries);
+        long currentVersion = next.containsKey(nodeId) ? next.get(nodeId).version() : 0L;
+        next.put(nodeId, new ClockEntry(currentVersion + 1, System.currentTimeMillis()));
+        
+        return new VectorClock(next).prune();
     }
 
     /**
-     * Devuelve un nuevo reloj que resulta de hacer el merge con `other`.
-     *
-     * El merge toma el máximo componente a componente. Esto se usa en el receptor
-     * de un mensaje para "ponerse al día" con el reloj del emisor antes de
-     * incrementar su propio contador.
-     *
-     * Ejemplo:
-     *   this  = { s0: 3, s1: 1 }
-     *   other = { s0: 1, s1: 4, s2: 2 }
-     *   merge = { s0: 3, s1: 4, s2: 2 }
+     * Merge de dos relojes tomando el máximo de versiones y timestamps.
      */
     public VectorClock merge(VectorClock other) {
-        Map<String, Long> merged = new HashMap<>(entries);
-        other.entries.forEach((nodeId, version) ->
-            merged.merge(nodeId, version, Math::max)
-        );
-        return new VectorClock(merged);
+        Map<String, ClockEntry> merged = new HashMap<>(entries);
+        other.entries.forEach((nodeId, otherEntry) -> {
+            ClockEntry thisEntry = merged.get(nodeId);
+            if (thisEntry == null) {
+                merged.put(nodeId, otherEntry);
+            } else {
+                merged.put(nodeId, new ClockEntry(
+                    Math.max(thisEntry.version(), otherEntry.version()),
+                    Math.max(thisEntry.timestamp(), otherEntry.timestamp())
+                ));
+            }
+        });
+        return new VectorClock(merged).prune();
     }
 
     /**
-     * Fábrica de conveniencia para construir relojes en los tests.
-     * Devuelve un nuevo reloj con la versión del nodo dado fijada al valor indicado
-     * (sobrescribe si ya existía). No incrementa: asigna directamente.
+     * Poda el reloj si supera MAX_NODES, eliminando los nodos con timestamps más antiguos.
      */
+    private VectorClock prune() {
+        if (entries.size() <= MAX_NODES) return this;
+
+        List<Map.Entry<String, ClockEntry>> list = new ArrayList<>(entries.entrySet());
+        list.sort(Comparator.comparingLong(e -> e.getValue().timestamp()));
+
+        Map<String, ClockEntry> pruned = new HashMap<>(entries);
+        for (int i = 0; i < list.size() - MAX_NODES; i++) {
+            pruned.remove(list.get(i).getKey());
+        }
+        return new VectorClock(pruned);
+    }
+
     public VectorClock withVersion(String nodeId, long version) {
-        Map<String, Long> next = new HashMap<>(entries);
-        next.put(nodeId, version);
+        Map<String, ClockEntry> next = new HashMap<>(entries);
+        next.put(nodeId, new ClockEntry(version, System.currentTimeMillis()));
         return new VectorClock(next);
     }
 
     /**
-     * Compara este reloj con `other` y devuelve la relación causal entre ambos.
-     *
-     * Algoritmo:
-     *   1. Reunir todos los nodos que aparecen en cualquiera de los dos relojes.
-     *   2. Para cada nodo, comparar la versión en `this` vs `other` (0 si ausente).
-     *   3. Si `this` gana en algún nodo y pierde en otro → CONCURRENT (conflicto).
-     *   4. Si `this` gana en algún nodo y nunca pierde → AFTER.
-     *   5. Si `this` nunca gana y pierde en algún nodo → BEFORE.
-     *   6. Si nunca gana ni pierde → EQUAL.
+     * Compara causalmente ignorando los timestamps (quienes solo sirven para poda).
      */
     public ComparisonResult compareTo(VectorClock other) {
         Set<String> todosLosNodos = new HashSet<>(entries.keySet());
@@ -112,13 +110,12 @@ public final class VectorClock {
         boolean otroGanaEnAlguno  = false;
 
         for (String nodo : todosLosNodos) {
-            long versionEste  = entries.getOrDefault(nodo, 0L);
-            long versionOtro  = other.entries.getOrDefault(nodo, 0L);
+            long vEste = entries.containsKey(nodo) ? entries.get(nodo).version() : 0L;
+            long vOtro = other.entries.containsKey(nodo) ? other.entries.get(nodo).version() : 0L;
 
-            if (versionEste > versionOtro) esteGanaEnAlguno = true;
-            if (versionOtro > versionEste) otroGanaEnAlguno = true;
+            if (vEste > vOtro) esteGanaEnAlguno = true;
+            if (vOtro > vEste) otroGanaEnAlguno = true;
 
-            // Optimización: si ya sabemos que hay conflicto, salimos temprano.
             if (esteGanaEnAlguno && otroGanaEnAlguno) return ComparisonResult.CONCURRENT;
         }
 
@@ -127,18 +124,29 @@ public final class VectorClock {
         return ComparisonResult.BEFORE;
     }
 
-    /** Retorna true si este reloj precede causalmente a `other` (happened-before). */
     public boolean happensBefore(VectorClock other) {
         return compareTo(other) == ComparisonResult.BEFORE;
     }
 
-    /** Retorna true si este reloj y `other` son concurrentes (hay conflicto). */
     public boolean isConcurrentWith(VectorClock other) {
         return compareTo(other) == ComparisonResult.CONCURRENT;
     }
 
+    /**
+     * Devuelve el timestamp más reciente presente en el reloj. 
+     * Útil para resolución de conflictos LWW (Last Write Wins).
+     */
+    public long getMaxTimestamp() {
+        return entries.values().stream()
+            .mapToLong(ClockEntry::timestamp)
+            .max()
+            .orElse(0L);
+    }
+
     public Map<String, Long> getEntries() {
-        return entries; // ya es unmodifiable
+        Map<String, Long> versions = new HashMap<>();
+        entries.forEach((k, v) -> versions.put(k, v.version()));
+        return Collections.unmodifiableMap(versions);
     }
 
     @Override
@@ -158,3 +166,4 @@ public final class VectorClock {
         return entries.hashCode();
     }
 }
+

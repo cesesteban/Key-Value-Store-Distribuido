@@ -1,4 +1,4 @@
 -------------------------------------------------------------------------------
 Test set: com.keyvaluestore.CoordinatorTest
 -------------------------------------------------------------------------------
-Tests run: 15, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.551 s -- in com.keyvaluestore.CoordinatorTest
+Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 2.653 s -- in com.keyvaluestore.CoordinatorTest

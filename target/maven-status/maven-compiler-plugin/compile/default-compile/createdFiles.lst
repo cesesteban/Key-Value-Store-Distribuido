@@ -1,3 +1,5 @@
+com\keyvaluestore\clock\VectorClock$ClockEntry.class
+com\keyvaluestore\coordinator\Coordinator$RetryableTask.class
 com\keyvaluestore\storage\StorageNode.class
 com\keyvaluestore\exception\QuorumNotReachedException.class
 com\keyvaluestore\clock\VectorClock$ComparisonResult.class
